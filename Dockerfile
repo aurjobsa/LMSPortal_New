@@ -1,36 +1,28 @@
-# Use the official PHP image with Apache web server
-FROM php:8.0-apache
+# Use the official PHP image with Apache
+FROM php:8.1-apache
 
-# Install required PHP extensions for Chamilo
-RUN apt-get update && apt-get install -y \
+# Install necessary system packages and PHP extensions
+RUN apt-get update && \
+    apt-get install -y \
     libpq-dev \
-    curl \
-    git \
-    && docker-php-ext-install mysqli pdo pdo_mysql
+    unzip \
+    && docker-php-ext-install pdo_pgsql
 
-# Install Composer (dependency manager for PHP)
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
-# Enable Apache mod_rewrite for Chamilo URL rewriting
+# Enable Apache modules
 RUN a2enmod rewrite
 
-# Set the working directory inside the container
+# Set working directory
 WORKDIR /var/www/html
 
-# Copy the Chamilo source code from your local machine to the container
-COPY . /var/www/html
+# Copy application code
+COPY . .
 
-# Install PHP dependencies using Composer (this will generate the 'vendor' directory)
-RUN composer install --no-dev --optimize-autoloader
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html && \
+    chmod -R 755 /var/www/html
 
-# Set permissions for the Chamilo directory (allow web server to read/write)
-RUN chown -R www-data:www-data /var/www/html
-
-# Update Apache DocumentRoot to point to the /public folder
-RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|' /etc/apache2/sites-available/000-default.conf
-
-# Expose port 80 for the web server
+# Expose port 80
 EXPOSE 80
 
-# Start Apache in the foreground
+# Start Apache server
 CMD ["apache2-foreground"]
