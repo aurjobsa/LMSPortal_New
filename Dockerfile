@@ -11,6 +11,12 @@ RUN apt-get update && \
 # Enable Apache modules
 RUN a2enmod rewrite
 
+# Set the document root to the public directory
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+
+# Update the Apache configuration to use the new document root
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+
 # Set working directory
 WORKDIR /var/www/html
 
