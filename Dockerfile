@@ -1,48 +1,38 @@
-# Use the official PHP image with Apache
-FROM php:8.1-apache
+# Use PHP with Apache
+FROM php:8.0-apache
 
-# Install system packages and PHP extensions
-RUN apt-get update && \
-    apt-get install -y \
+# Install necessary system dependencies
+RUN apt-get update && apt-get install -y \
     libpq-dev \
-    unzip \
-    git \
     curl \
-    libicu-dev \
-    && docker-php-ext-install pdo_pgsql intl && \
-    apt-get clean
+    git \
+    unzip \
+    libzip-dev \
+    && docker-php-ext-install pdo pdo_mysql mysqli zip
 
-# Install Composer
+# Install Composer globally
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-# Enable Apache modules
+# Enable Apache mod_rewrite for SEO-friendly URLs and other features
 RUN a2enmod rewrite
 
-# Set the document root to the public directory
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-
-# Update the Apache configuration to use the new document root
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-
-# Set working directory
+# Set the working directory for the application inside the container
 WORKDIR /var/www/html
 
-# Clone Chamilo LMS repository
-RUN git clone https://github.com/chamilo/chamilo-lms.git .
+# Copy the source code into the container (assuming it's in the same directory as the Dockerfile)
+COPY . /var/www/html
 
-# Set proper permissions for the working directory
-RUN chown -R www-data:www-data /var/www/html && \
-    chmod -R 755 /var/www/html
+# Clear Composer cache before installing dependencies to ensure clean install
+RUN composer clear-cache
 
-# Install PHP dependencies using Composer (with debug mode)
-RUN composer install --no-dev --optimize-autoloader --verbose --prefer-dist --no-interaction
+# Install all dependencies including development dependencies
+RUN composer install --optimize-autoloader --prefer-dist --no-interaction -vvv
 
-# Set proper permissions for the web server
-RUN chown -R www-data:www-data /var/www/html && \
-    chmod -R 755 /var/www/html
+# Set proper permissions for the web server user (Apache)
+RUN chown -R www-data:www-data /var/www/html
 
-# Expose port 80 to access the service
+# Expose port 80 for web traffic
 EXPOSE 80
 
-# Start Apache server
+# Start Apache service in the foreground
 CMD ["apache2-foreground"]
