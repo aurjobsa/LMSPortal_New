@@ -7,7 +7,12 @@ RUN apt-get update && \
     libpq-dev \
     unzip \
     git \
-    && docker-php-ext-install pdo_pgsql
+    curl \
+    && docker-php-ext-install pdo_pgsql \
+    && apt-get clean
+
+# Install Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 # Enable Apache modules
 RUN a2enmod rewrite
@@ -24,17 +29,14 @@ WORKDIR /var/www/html
 # Clone Chamilo LMS repository
 RUN git clone https://github.com/chamilo/chamilo-lms.git .
 
-# Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Install PHP dependencies using Composer
+RUN composer install --no-dev --optimize-autoloader --verbose
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
-
-# Set permissions
+# Set proper permissions for the web server
 RUN chown -R www-data:www-data /var/www/html && \
     chmod -R 755 /var/www/html
 
-# Expose port 80
+# Expose port 80 to access the service
 EXPOSE 80
 
 # Start Apache server
