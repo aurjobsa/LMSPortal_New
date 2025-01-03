@@ -8,8 +8,9 @@ RUN apt-get update && \
     unzip \
     git \
     curl \
-    && docker-php-ext-install pdo_pgsql \
-    && apt-get clean
+    libicu-dev \
+    && docker-php-ext-install pdo_pgsql intl && \
+    apt-get clean
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
@@ -29,8 +30,12 @@ WORKDIR /var/www/html
 # Clone Chamilo LMS repository
 RUN git clone https://github.com/chamilo/chamilo-lms.git .
 
-# Install PHP dependencies using Composer
-RUN composer install --no-dev --optimize-autoloader --verbose
+# Set proper permissions for the working directory
+RUN chown -R www-data:www-data /var/www/html && \
+    chmod -R 755 /var/www/html
+
+# Install PHP dependencies using Composer (with debug mode)
+RUN composer install --no-dev --optimize-autoloader --verbose --prefer-dist --no-interaction
 
 # Set proper permissions for the web server
 RUN chown -R www-data:www-data /var/www/html && \
